@@ -48,10 +48,12 @@ class Anony (Client ):
         except Exception as e :
             LOGGER (__name__ ).warning (f'Failed to set bot commands: {e }')
 
+        log_chat_accessible =False
         try :
             LOGGER (__name__ ).info (f'Attempting to access log group/channel: {config .LOGGER_ID }')
             await self .send_message (chat_id =config .LOGGER_ID ,text =f'<u><b>» {self .mention } ʙᴏᴛ sᴛᴀʀᴛᴇᴅ :</b></u>\n\nɪᴅ : <code>{self .id }</code>\nɴᴀᴍᴇ : {self .name }\nᴜsᴇʀɴᴀᴍᴇ : @{self .username }')
             LOGGER (__name__ ).info ('✓ Startup message sent to log group')
+            log_chat_accessible =True
         except (errors .ChannelInvalid ,errors .PeerIdInvalid ):
             LOGGER (__name__ ).warning (f'Cannot access log group/channel {config .LOGGER_ID }. Bot will continue running but startup notifications will not be sent. Make sure bot is added to the group and has admin permissions.')
         except (errors .BadRequest ,errors .Forbidden ):
@@ -60,12 +62,13 @@ class Anony (Client ):
             error_str =str (ex )
             LOGGER (__name__ ).warning (f'Could not access log group/channel {config .LOGGER_ID }: {type (ex ).__name__ }: {error_str }')
 
-        try :
-            a =await self .get_chat_member (config .LOGGER_ID ,self .id )
-            if a .status !=ChatMemberStatus .ADMINISTRATOR :
-                LOGGER (__name__ ).warning (f'Bot is not an admin in log group/channel {config .LOGGER_ID }. Some functions may be limited.')
-        except Exception as ex :
-            LOGGER (__name__ ).warning (f'Could not verify admin status in log group: {type (ex ).__name__ }')
+        if log_chat_accessible :
+            try :
+                a =await self .get_chat_member (config .LOGGER_ID ,self .id )
+                if a .status !=ChatMemberStatus .ADMINISTRATOR :
+                    LOGGER (__name__ ).warning (f'Bot is not an admin in log group/channel {config .LOGGER_ID }. Some functions may be limited.')
+            except Exception as ex :
+                LOGGER (__name__ ).warning (f'Could not verify admin status in log group: {type (ex ).__name__ }')
 
         LOGGER (__name__ ).info (f'Music Bot Started as {self .name }')
 

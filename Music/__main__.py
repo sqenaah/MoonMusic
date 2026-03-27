@@ -83,10 +83,13 @@ async def init ():
         raise
 
     try :
+        await app .get_chat (config .LOGGER_ID )
         await Anony .stream_call ('https://image2url.com/r2/default/videos/1769268795930-72965ce5-60f7-4bf2-bdcd-e5a49cce8ad4.mp4')
     except NoActiveGroupCall :
         LOGGER ('Music').error ('Please enable videochat in your log group/channel.\n\nStopping Bot...')
         exit ()
+    except (pyrogram_errors .PeerIdInvalid ,pyrogram_errors .ChannelInvalid ):
+        LOGGER (__name__ ).warning (f"Skipping log-group stream test because LOGGER_ID {config .LOGGER_ID } is not accessible to the bot.")
     except Exception as e :
         LOGGER (__name__ ).warning (f"Stream test failed (non-critical): {type (e ).__name__ }: {e }")
 
@@ -121,6 +124,10 @@ def _handle_loop_exception (loop ,context ):
 
             if isinstance (error ,UnknownError ):
                 LOGGER (__name__ ).warning (f"Telegram API error (may be transient): {error }")
+                return
+
+            if "Peer id invalid"in error_str :
+                LOGGER (__name__ ).warning (f"Peer error handled non-fatally: {error_str }")
                 return
 
             LOGGER (__name__ ).error (f'Unhandled exception in event loop: {error }',exc_info =True )
@@ -206,8 +213,8 @@ if __name__ =='__main__':
 
                 LOGGER (__name__ ).error (f'Failed in init(): {error_type }: {error_msg }')
 
-                if error_type =="AuthKeyDuplicated"or "Peer id invalid"in error_msg :
-                    LOGGER (__name__ ).critical ("Session conflict detected (AUTH_KEY_DUPLICATED or invalid peer). Container will exit for clean restart.")
+                if error_type =="AuthKeyDuplicated":
+                    LOGGER (__name__ ).critical ("Session conflict detected (AUTH_KEY_DUPLICATED). Container will exit for clean restart.")
                     try :
                         if app .is_connected :
                             await app .stop ()

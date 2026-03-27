@@ -30,7 +30,7 @@ ITALIC_TO_REGULAR =str .maketrans ({119860 :'A',119861 :'B',119862 :'C',119863 :
 def convert_italic_unicode (text ):
     return text .translate (ITALIC_TO_REGULAR )
 
-from config import YT_API_KEY ,YTPROXY_URL as YTPROXY ,YOUTUBE_PROXY ,YOUTUBE_USE_PYTUBE ,YOUTUBE_INVIDIOUS_INSTANCES ,YOUTUBE_FALLBACK_SEARCH_LIMIT ,YOUTUBE_ENABLED ,YOUTUBE_PROXY_LIST
+from config import INVIDIOUS_THIRDPARTY_FALLBACK ,YT_API_KEY ,YTPROXY_URL as YTPROXY ,YOUTUBE_PROXY ,YOUTUBE_USE_PYTUBE ,YOUTUBE_INVIDIOUS_INSTANCES ,YOUTUBE_FALLBACK_SEARCH_LIMIT ,YOUTUBE_ENABLED ,YOUTUBE_PROXY_LIST
 
 def _resolve_cookiefile_path ():
     env_path =os .getenv ('YT_COOKIES_PATH')or os .getenv ('COOKIES_PATH')
@@ -161,18 +161,27 @@ async def _download_with_external_services_only (youtube_url :str ,filepath :str
     os .makedirs (os .path .dirname (filepath )or '.',exist_ok =True )
     if os .path .exists (filepath ):
         return filepath
-    for attempt_label ,max_attempts in (('top-1',1 ),('all-configured',None )):
+    try :
+        logger .info (f'   → External-only {label } extraction...')
+        ext_result =await try_external_mp3_extraction (youtube_url ,filepath ,timeout =45 ,max_attempts =None )
+        if ext_result and os .path .exists (filepath ):
+            logger .info (f'✅ External-only {label } extraction succeeded for {log_id }')
+            _log_method (log_id ,metric ,api )
+            return filepath
+    except Exception as ext_e :
+        logger .debug (f'External-only {label } extraction failed for {log_id }: {type (ext_e ).__name__ }: {ext_e }')
+    if INVIDIOUS_THIRDPARTY_FALLBACK :
         try :
-            logger .info (f'   → External-only {label } extraction ({attempt_label })...')
-            ext_result =await try_external_mp3_extraction (youtube_url ,filepath ,timeout =45 ,max_attempts =max_attempts )
-            if ext_result and os .path .exists (filepath ):
-                logger .info (f'✅ External-only {label } extraction succeeded for {log_id } ({attempt_label })')
-                _log_method (log_id ,metric ,api )
+            logger .info (f'   → Invidious third-party {label } extraction...')
+            inv_result =await try_invidious_extraction (youtube_url ,filepath ,timeout =60 )
+            if inv_result and os .path .exists (filepath ):
+                logger .info (f'✅ Invidious third-party {label } extraction succeeded for {log_id }')
+                _log_method (log_id ,'invidious',api )
                 return filepath
-        except Exception as ext_e :
-            logger .debug (f'External-only {label } extraction failed for {log_id } ({attempt_label }): {type (ext_e ).__name__ }: {ext_e }')
+        except Exception as inv_e :
+            logger .debug (f'Invidious third-party {label } extraction failed for {log_id }: {type (inv_e ).__name__ }: {inv_e }')
     logger .error (f'❌ External-only {label } extraction failed for {log_id }')
-    logger .warning ('   Direct YouTube, Invidious, and pytube download paths are disabled.')
+    logger .warning ('   Direct YouTube and pytube download paths are disabled. Third-party extractors were exhausted.')
     return None
 
 class YouTubeAPI :

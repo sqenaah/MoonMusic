@@ -192,7 +192,7 @@ async def play_commnd (client ,message :Message ,_ ,chat_id ,video ,channel ,pla
                 await mystic .edit_text (_ ['black_9'])
                 try :
                     return await app .send_message (chat_id =config .LOGGER_ID ,text =_ ['play_17'])
-                except ValueError :
+                except Exception :
                     pass
             except Exception as e :
                 return await mystic .edit_text (_ ['general_2'].format (type (e ).__name__ ))

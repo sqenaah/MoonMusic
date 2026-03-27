@@ -28,7 +28,7 @@ class Userbot (Client ):
                 try :
                     await self .one .send_message (config .LOGGER_ID ,'Assistant Started')
                 except Exception as e :
-                    LOGGER (__name__ ).error (f'Assistant Account 1 has failed to access the log Group: {type (e ).__name__ }. Make sure that you have added your assistant to your log group and promoted as admin!')
+                    LOGGER (__name__ ).warning (f'Assistant Account 1 could not access the log group: {type (e ).__name__ }. The assistant will continue running.')
                 self .one .id =self .one .me .id
                 self .one .name =self .one .me .mention
                 if not self .one .me .username :
@@ -54,7 +54,7 @@ class Userbot (Client ):
                 try :
                     await self .two .send_message (config .LOGGER_ID ,'Assistant Started')
                 except Exception as e :
-                    LOGGER (__name__ ).error (f'Assistant Account 2 has failed to access the log Group: {type (e ).__name__ }. Make sure that you have added your assistant to your log group and promoted as admin!')
+                    LOGGER (__name__ ).warning (f'Assistant Account 2 could not access the log group: {type (e ).__name__ }. The assistant will continue running.')
                 self .two .id =self .two .me .id
                 self .two .name =self .two .me .mention
                 if not self .two .me .username :
@@ -80,7 +80,7 @@ class Userbot (Client ):
                 try :
                     await self .three .send_message (config .LOGGER_ID ,'Assistant Started')
                 except Exception as e :
-                    LOGGER (__name__ ).error (f'Assistant Account 3 has failed to access the log Group: {type (e ).__name__ }. Make sure that you have added your assistant to your log group and promoted as admin!')
+                    LOGGER (__name__ ).warning (f'Assistant Account 3 could not access the log group: {type (e ).__name__ }. The assistant will continue running.')
                 self .three .id =self .three .me .id
                 self .three .name =self .three .me .mention
                 if not self .three .me .username :
@@ -106,7 +106,7 @@ class Userbot (Client ):
                 try :
                     await self .four .send_message (config .LOGGER_ID ,'Assistant Started')
                 except Exception as e :
-                    LOGGER (__name__ ).error (f'Assistant Account 4 has failed to access the log Group: {type (e ).__name__ }. Make sure that you have added your assistant to your log group and promoted as admin!')
+                    LOGGER (__name__ ).warning (f'Assistant Account 4 could not access the log group: {type (e ).__name__ }. The assistant will continue running.')
                 self .four .id =self .four .me .id
                 self .four .name =self .four .me .mention
                 if not self .four .me .username :
@@ -132,7 +132,7 @@ class Userbot (Client ):
                 try :
                     await self .five .send_message (config .LOGGER_ID ,'Assistant Started')
                 except Exception as e :
-                    LOGGER (__name__ ).error (f'Assistant Account 5 has failed to access the log Group: {type (e ).__name__ }. Make sure that you have added your assistant to your log group and promoted as admin!')
+                    LOGGER (__name__ ).warning (f'Assistant Account 5 could not access the log group: {type (e ).__name__ }. The assistant will continue running.')
                 self .five .id =self .five .me .id
                 self .five .name =self .five .me .mention
                 if not self .five .me .username :

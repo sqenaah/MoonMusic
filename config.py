@@ -54,14 +54,36 @@ YOUTUBE_INVIDIOUS_INSTANCES = [
     "https://invidious.flokinet.to",
     "https://invidious.darkness.services",
 ]
+INVIDIOUS_THIRDPARTY_FALLBACK = os.getenv("INVIDIOUS_THIRDPARTY_FALLBACK", "1").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+ALLOW_INSECURE_INVIDIOUS_SSL = os.getenv("ALLOW_INSECURE_INVIDIOUS_SSL", "1").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 
 YT_API_KEY = "AIzaSyAyFW-9snpxGwFa5cu-p81jjE8Fg1h_6rk"
 YOUTUBE_FALLBACK_SEARCH_LIMIT = 5
 
-# Maximum number of external services to try for downloads
-# Options: 1-13 (more = more reliable but slower)
-# Set to 5 to try 5 services, 13 to try all services
-EXTERNAL_SERVICES_MAX_ATTEMPT = int(os.getenv("EXTERNAL_SERVICES_MAX_ATTEMPT", "5"))
+# Supported external extractor configuration.
+# Public hosted cobalt instances usually require auth; self-hosted cobalt is recommended.
+COBALT_API_URL = os.getenv("COBALT_API_URL", "https://api.cobalt.tools/").strip() or None
+COBALT_API_KEY = os.getenv("COBALT_API_KEY", "").strip() or None
+COBALT_BEARER_TOKEN = os.getenv("COBALT_BEARER_TOKEN", "").strip() or None
+ENABLE_LEGACY_EXTERNAL_SERVICES = os.getenv("ENABLE_LEGACY_EXTERNAL_SERVICES", "0").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+
+# Only the configured supported services are tried by default.
+EXTERNAL_SERVICES_MAX_ATTEMPT = int(os.getenv("EXTERNAL_SERVICES_MAX_ATTEMPT", "1"))
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # DURATION & RATE LIMITS
