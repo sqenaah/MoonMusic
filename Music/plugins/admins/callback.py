@@ -3,6 +3,7 @@ import asyncio
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardButton ,InlineKeyboardMarkup ,CallbackQuery
 
+import config
 from Music import YouTube ,app
 from Music.core.call import Anony
 from Music.misc import SUDOERS ,db
@@ -23,7 +24,6 @@ from Music.utils.inline import close_markup ,stream_markup ,stream_markup_timer
 from Music.utils.thumbnails import get_thumb
 from config import (
 BANNED_USERS ,
-SOUNCLOUD_IMG_URL ,
 STREAM_IMG_URL ,
 TELEGRAM_AUDIO_URL ,
 TELEGRAM_VIDEO_URL ,
@@ -33,6 +33,8 @@ votemode ,
 autoclean ,
 )
 from strings import get_string
+
+SOUNDCLOUD_IMG_URL =getattr (config ,'SOUNDCLOUD_IMG_URL',getattr (config ,'STREAM_IMG_URL',getattr (config ,'TELEGRAM_AUDIO_URL',None )))
 
 checker ={}
 upvoters ={}

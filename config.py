@@ -146,7 +146,7 @@ SPOTIFY_ARTIST_IMG_URL = "https://image2url.com/r2/default/images/1768793789039-
 SPOTIFY_ALBUM_IMG_URL = "https://image2url.com/r2/default/images/1768793789039-2d4017a9-b0a3-43ec-837c-82855012c3fb.jpg"
 SPOTIFY_PLAYLIST_IMG_URL = "https://image2url.com/r2/default/images/1768793789039-2d4017a9-b0a3-43ec-837c-82855012c3fb.jpg"
 
-DEFAULT_THUMB = YOUTUBE_IMG_URL[0]
+DEFAULT_THUMB = START_IMG_URL[0]
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # UTILITY FUNCTIONS
