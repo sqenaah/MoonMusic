@@ -18,7 +18,7 @@ OWNER_ID = 8557740388
 # ═══════════════════════════════════════════════════════════════════════════════
 
 MONGO_USER = "mongo"
-MONGO_PASSWORD = "FypzoNxflzBDSauhkXhqXkGCohhdnmSI"
+MONGO_PASSWORD = "CfKZWFPbVMiyRGNPuCVPCOgcZksFwPOM"
 MONGO_HOST = "mongodb.railway.internal"
 MONGO_PORT = "27017"
 MONGO_DB_NAME = "music"
