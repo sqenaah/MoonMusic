@@ -8,7 +8,7 @@ import re
 import sys
 import string
 from concurrent .futures import ThreadPoolExecutor
-from typing import Union
+from typing import Optional ,Union
 import aiohttp
 import requests
 import yt_dlp
@@ -31,7 +31,17 @@ def convert_italic_unicode (text ):
     return text .translate (ITALIC_TO_REGULAR )
 
 from config import YT_API_KEY ,YTPROXY_URL as YTPROXY ,YOUTUBE_PROXY ,YOUTUBE_USE_PYTUBE ,YOUTUBE_INVIDIOUS_INSTANCES ,YOUTUBE_FALLBACK_SEARCH_LIMIT ,YOUTUBE_ENABLED ,YOUTUBE_PROXY_LIST
-COOKIEFILE_PATH =os.getenv('YT_COOKIES_PATH',None)
+
+def _resolve_cookiefile_path ():
+    env_path =os .getenv ('YT_COOKIES_PATH')or os .getenv ('COOKIES_PATH')
+    if env_path and os .path .exists (env_path ):
+        return env_path
+    for candidate in ('cookies.txt','/app/cookies.txt'):
+        if os .path .exists (candidate ):
+            return candidate
+    return env_path or None
+
+COOKIEFILE_PATH =_resolve_cookiefile_path ()
 
 logger =LOGGER (__name__ )
 
@@ -146,6 +156,24 @@ def _choose_proxy (attempt :int =0 ):
         return YOUTUBE_PROXY
     except Exception :
         return YOUTUBE_PROXY
+
+async def _download_with_external_services_only (youtube_url :str ,filepath :str ,log_id :str ,api =None ,metric :str ='external_service',label :str ='media')->Optional [str ]:
+    os .makedirs (os .path .dirname (filepath )or '.',exist_ok =True )
+    if os .path .exists (filepath ):
+        return filepath
+    for attempt_label ,max_attempts in (('top-1',1 ),('all-configured',None )):
+        try :
+            logger .info (f'   → External-only {label } extraction ({attempt_label })...')
+            ext_result =await try_external_mp3_extraction (youtube_url ,filepath ,timeout =45 ,max_attempts =max_attempts )
+            if ext_result and os .path .exists (filepath ):
+                logger .info (f'✅ External-only {label } extraction succeeded for {log_id } ({attempt_label })')
+                _log_method (log_id ,metric ,api )
+                return filepath
+        except Exception as ext_e :
+            logger .debug (f'External-only {label } extraction failed for {log_id } ({attempt_label }): {type (ext_e ).__name__ }: {ext_e }')
+    logger .error (f'❌ External-only {label } extraction failed for {log_id }')
+    logger .warning ('   Direct YouTube, Invidious, and pytube download paths are disabled.')
+    return None
 
 class YouTubeAPI :
 
@@ -1579,4 +1607,192 @@ class YouTubeAPI :
         else :
             direct =True
             downloaded_file =await audio_dl (vid_id ,title )
+        return (downloaded_file ,direct )
+
+    async def video (self ,link :str ,videoid :Union [bool ,str ]=None ):
+        if videoid :
+            link =self .base +link
+        if '&'in link :
+            link =link .split ('&')[0 ]
+        if '?si='in link :
+            link =link .split ('?si=')[0 ]
+        elif '&si='in link :
+            link =link .split ('&si=')[0 ]
+
+        video_id =None
+        if 'watch?v='in link :
+            try :
+                video_id =link .split ('watch?v=')[1 ].split ('&')[0 ]
+            except Exception :
+                video_id =None
+        elif 'youtu.be/'in link :
+            try :
+                video_id =link .split ('youtu.be/')[1 ].split ('?')[0 ]
+            except Exception :
+                video_id =None
+
+        safe_id =video_id or re .sub (r'[^0-9A-Za-z]','',link )[:32 ]or 'youtube'
+        youtube_url =f'https://www.youtube.com/watch?v={video_id }'if video_id else link
+        filepath =os .path .join ('downloads',f'{safe_id }.mp3')
+        ext =await _download_with_external_services_only (youtube_url ,filepath ,safe_id ,self ,'external_service','stream' )
+        if ext and os .path .exists (filepath ):
+            return (1 ,filepath )
+        return (0 ,'External services could not extract media')
+
+    async def track (self ,link :str ,videoid :Union [bool ,str ]=None ):
+        if videoid :
+            link =self .base +link
+        if '&'in link :
+            link =link .split ('&')[0 ]
+        if '?si='in link :
+            link =link .split ('?si=')[0 ]
+        elif '&si='in link :
+            link =link .split ('&si=')[0 ]
+
+        video_id_from_link =None
+        if 'watch?v='in link :
+            try :
+                video_id_from_link =link .split ('watch?v=')[1 ].split ('&')[0 ]
+            except Exception :
+                video_id_from_link =None
+        elif 'youtu.be/'in link :
+            try :
+                video_id_from_link =link .split ('youtu.be/')[1 ].split ('?')[0 ]
+            except Exception :
+                video_id_from_link =None
+
+        if video_id_from_link :
+            try :
+                from Music .utils .mongo_cache import metadata_cache
+                cached_metadata =await metadata_cache .get (f'metadata_{video_id_from_link}')
+                if cached_metadata :
+                    logger .info (f'✓ Using cached metadata for {video_id_from_link }')
+                    return (cached_metadata ,video_id_from_link )
+            except Exception as e :
+                logger .debug (f'Metadata cache retrieval failed: {e }')
+
+        for attempt in range (2 ):
+            try :
+                results =VideosSearch (link ,limit =1 )
+                res =await results .next ()
+                results_list =res .get ('result',[])
+                logger .debug (f'VideosSearch returned {len (results_list )} results for "{link }"')
+                if results_list :
+                    result =results_list [0 ]
+                    title =result .get ('title','Unknown Video')
+                    duration_min =result .get ('duration','0:00')
+                    vidid =result .get ('id','')
+                    yturl =result .get ('link',f'https://www.youtube.com/watch?v={vidid }')
+                    thumbnails =result .get ('thumbnails',[])
+                    thumbnail =thumbnails [0 ]['url'].split ('?')[0 ]if thumbnails else f'https://i.ytimg.com/vi/{vidid }/maxresdefault.jpg'
+                    if vidid and title and title !='Unknown Video':
+                        track_details ={'title':title ,'link':yturl ,'vidid':vidid ,'duration_min':duration_min ,'thumb':thumbnail }
+                        try :
+                            from Music .utils .mongo_cache import metadata_cache
+                            await metadata_cache .set (f'metadata_{vidid }',track_details ,ttl =86400 *7 )
+                        except Exception as e :
+                            logger .debug (f'Metadata cache storage failed: {e }')
+                        logger .info (f'✓ VideosSearch succeeded for "{link }", cached & returning: {track_details }')
+                        return (track_details ,vidid )
+            except Exception as e :
+                logger .debug (f'VideosSearch attempt {attempt +1 }/2 failed for "{link }": {e }')
+                if attempt <1 :
+                    await asyncio .sleep (0.5 )
+
+        if YT_API_KEY :
+            try :
+                search_url =f"https://www.googleapis.com/youtube/v3/search?q={link .replace (' ','+')}&type=video&part=snippet&key={YT_API_KEY }&maxResults=1"
+                async with aiohttp .ClientSession ()as session :
+                    async with session .get (search_url ,timeout =aiohttp .ClientTimeout (total =10 ))as resp :
+                        if resp .status ==200 :
+                            data =await resp .json ()
+                            if 'items'in data and len (data ['items'])>0 :
+                                item =data ['items'][0 ]
+                                vid_id =item ['id']['videoId']
+                                title =item ['snippet']['title']
+                                thumbnail =item ['snippet']['thumbnails'].get ('high',{}).get ('url','')
+                                duration_min ='0:00'
+                                details_url =f"https://www.googleapis.com/youtube/v3/videos?id={vid_id }&part=contentDetails&key={YT_API_KEY }"
+                                async with session .get (details_url ,timeout =aiohttp .ClientTimeout (total =10 ))as details_resp :
+                                    if details_resp .status ==200 :
+                                        details_data =await details_resp .json ()
+                                        if 'items'in details_data and len (details_data ['items'])>0 :
+                                            duration_iso =details_data ['items'][0 ]['contentDetails']['duration']
+                                            import re as regex
+                                            duration_regex =regex .compile (r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?')
+                                            match =duration_regex .match (duration_iso )
+                                            if match :
+                                                hours =int (match .group (1 )or 0 )
+                                                minutes =int (match .group (2 )or 0 )
+                                                seconds =int (match .group (3 )or 0 )
+                                                duration_min =f"{hours }:{minutes :02d}:{seconds :02d}"if hours >0 else f"{minutes }:{seconds :02d}"
+                                yturl =f"https://www.youtube.com/watch?v={vid_id }"
+                                track_details ={'title':title ,'link':yturl ,'vidid':vid_id ,'duration_min':duration_min ,'thumb':thumbnail }
+                                try :
+                                    from Music .utils .mongo_cache import metadata_cache
+                                    await metadata_cache .set (f'metadata_{vid_id }',track_details ,ttl =86400 *7 )
+                                except Exception as e :
+                                    logger .debug (f'Metadata cache storage failed: {e }')
+                                logger .info (f'✓ YouTube API search succeeded for "{link }"')
+                                return (track_details ,vid_id )
+            except Exception as e :
+                logger .debug (f'YouTube API search failed: {e }')
+
+        if video_id_from_link :
+            logger .warning (f'YouTube metadata extraction failed for {video_id_from_link }, using generic fallback metadata')
+            track_details ={
+            'title':f'Music {video_id_from_link }',
+            'link':link ,
+            'vidid':video_id_from_link ,
+            'duration_min':'0:00',
+            'thumb':f'https://i.ytimg.com/vi/{video_id_from_link }/maxresdefault.jpg'
+            }
+            try :
+                from Music .utils .mongo_cache import metadata_cache
+                await metadata_cache .set (f'metadata_{video_id_from_link }',track_details ,ttl =3600 )
+            except Exception as e :
+                logger .debug (f'Metadata cache storage failed: {e }')
+            return (track_details ,video_id_from_link )
+
+        raise ValueError ('ꜰᴀɪʟᴇᴅ ᴛᴏ ꜰᴇᴛᴄʜ ᴛʀᴀᴄᴋ ᴅᴇᴛᴀɪʟs. ᴛʀʏ ᴘʟᴀʏɪɴɢ ᴀɴʏ ᴏᴛʜᴇʀ.')
+
+    async def download (self ,link :str ,mystic ,video :Union [bool ,str ]=None ,videoid :Union [bool ,str ]=None ,songaudio :Union [bool ,str ]=None ,songvideo :Union [bool ,str ]=None ,format_id :Union [bool ,str ]=None ,title :Union [bool ,str ]=None )->str :
+        if videoid :
+            vid_id =link
+            youtube_url =self .base +link
+        else :
+            youtube_url =link
+            vid_id =None
+            if 'watch?v='in link :
+                try :
+                    vid_id =link .split ('watch?v=')[1 ].split ('&')[0 ]
+                except Exception :
+                    vid_id =None
+            elif 'youtu.be/'in link :
+                try :
+                    vid_id =link .split ('youtu.be/')[1 ].split ('?')[0 ]
+                except Exception :
+                    vid_id =None
+
+        if not YOUTUBE_ENABLED :
+            logger .warning (f'YouTube downloads disabled by configuration; skipping download for {youtube_url }')
+            return None
+
+        safe_id =vid_id or re .sub (r'[^0-9A-Za-z]','',youtube_url )[:32 ]or 'youtube'
+        safe_title =re .sub (r'[<>:\"/\\\\|?*]','',str (title or safe_id ))or safe_id
+
+        async def external_only (filepath :str ,metric :str ,label :str ):
+            return await _download_with_external_services_only (youtube_url ,filepath ,safe_id ,self ,metric ,label )
+
+        if songvideo :
+            return await external_only (f'downloads/{safe_title }.mp4','external_service_video','song-video' )
+        if songaudio :
+            return await external_only (f'downloads/{safe_title }.mp3','external_service','song-audio' )
+
+        if video :
+            downloaded_file =await external_only (os .path .join ('downloads',f'{safe_id }.mp4'),'external_service_video','video' )
+        else :
+            downloaded_file =await external_only (os .path .join ('downloads',f'{safe_id }.mp3'),'external_service','audio' )
+
+        direct =True
         return (downloaded_file ,direct )

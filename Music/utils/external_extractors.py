@@ -301,7 +301,7 @@ async def try_external_mp3_extraction (video_url :str ,filepath :str ,timeout :i
         if failed_services :
             logger .debug (f'Failed services: {", ".join (failed_services [:5 ])}')
 
-        logger .error ("❌ This video may require authentication (YouTube anti-bot protection). Please provide a cookies.txt file exported from your browser and configure the downloader to use it. See https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp for instructions.")
+        logger .error ('❌ All configured external extraction services failed. Direct YouTube, Invidious, and pytube download paths are disabled in this build.')
         return None
     except Exception as outer_e :
         logger .error (f"External extraction fatal error: {type (outer_e ).__name__ }: {outer_e }")

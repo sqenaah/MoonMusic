@@ -225,29 +225,8 @@ async def play_commnd (client ,message :Message ,_ ,chat_id ,video ,channel ,pla
         except Exception as e :
             logger .warning (f'YouTube search failed for "{query }": {str (e )}')
             search_error =str (e )
-
-            try :
-                logger .info (f'Attempting Spotify fallback for "{query }"...')
-                details ,track_id =await Spotify .track (query )
-                logger .info (f'✓ Spotify search succeeded for "{query }"')
-            except Exception as e :
-                logger .warning (f'Spotify search failed: {str (e )}')
-
-                try :
-                    logger .info (f'Attempting SoundCloud fallback for "{query }"...')
-                    details ,track_id =await SoundCloud .track (query )
-                    logger .info (f'✓ SoundCloud search succeeded for "{query }"')
-                except Exception as e :
-                    logger .warning (f'SoundCloud search failed: {str (e )}')
-
-                    try :
-                        logger .info (f'Attempting Apple Music fallback for "{query }"...')
-                        details ,track_id =await Apple .track (query )
-                        logger .info (f'✓ Apple Music search succeeded for "{query }"')
-                    except Exception as e :
-                        logger .error (f'All search methods failed for "{query }": {str (e )}')
-                        error_msg =str (e )if "ꜰᴀɪʟᴇᴅ"in str (e )else _ ['play_3']
-                        return await mystic .edit_text (error_msg )
+            error_msg =search_error if "ꜰᴀɪʟᴇᴅ"in search_error else _ ['play_3']
+            return await mystic .edit_text (error_msg )
 
         if not details or not track_id :
             error_msg =search_error if search_error else _ ['play_3']

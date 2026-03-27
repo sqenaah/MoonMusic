@@ -217,146 +217,21 @@ async def song_download (client ,message :Message ):
         filepath =f'downloads/{safe_title }.mp3'
 
         download_success =False
-        auth_blocked = False
 
-        logger .info (f'[Attempt 1] Trying yt-dlp bestaudio for: {video_url }')
-
-        if not download_success :
-            try :
-                ydl_opts ={
-                'format':'bestaudio[ext=m4a]/bestaudio/best',
-                'postprocessors':[{
-                'key':'FFmpegExtractAudio',
-                'preferredcodec':'mp3',
-                'preferredquality':'320',
-                }],
-                'outtmpl':os .path .splitext (filepath )[0 ],
-                'quiet':True ,
-                'no_warnings':True ,
-                'socket_timeout':20 ,
-                'http_headers':{
-                'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                }
-                }
-                if YOUTUBE_PROXY :
-                    ydl_opts ['proxy']=YOUTUBE_PROXY
-
-                loop =asyncio .get_running_loop ()
-                with ThreadPoolExecutor (max_workers =1 )as executor :
-                    err =await loop .run_in_executor (executor ,functools .partial (_run_yt_dlp_suppressed ,ydl_opts ,[video_url ]))
-                if err :
-                    if 'Sign in to confirm'in err :
-                        logger .debug ('yt-dlp bestaudio requires authentication (skipping)')
-                        auth_blocked = True
-                    else :
-                        logger .debug (f'yt-dlp bestaudio failed: {err [:200 ]}')
-
-                if os .path .exists (filepath ):
-                    file_size =os .path .getsize (filepath )
-                    if file_size >10000 :
-                        download_success =True
-                        logger .info (f'✓ yt-dlp bestaudio succeeded ({file_size } bytes)')
-            except Exception as e :
-                logger .debug (f'yt-dlp bestaudio failed: {str (e )[:100 ]}')
-
-        if not download_success and not auth_blocked :
-            logger .info (f'[Attempt 2] Trying yt-dlp direct best for: {video_url }')
-
-            try :
-                ydl_opts ={
-                'format':'best',
-                'quiet':True ,
-                'no_warnings':True ,
-                'socket_timeout':20 ,
-                'http_headers':{
-                'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                }
-                }
-                if YOUTUBE_PROXY :
-                    ydl_opts ['proxy']=YOUTUBE_PROXY
-
-                loop =asyncio .get_running_loop ()
-                with ThreadPoolExecutor (max_workers =1 )as executor :
-                    err =await loop .run_in_executor (executor ,functools .partial (_run_yt_dlp_suppressed ,ydl_opts ,[video_url ]))
-                if err :
-                    if 'Sign in to confirm'in err :
-                        logger .debug ('yt-dlp best requires authentication (skipping)')
-                        auth_blocked = True
-                    else :
-                        logger .debug (f'yt-dlp best failed: {err [:200 ]}')
-
-                download_dir ='downloads'
-                if os .path .exists (download_dir ):
-                    for fname in os .listdir (download_dir ):
-                        if fname !=f'{safe_title }.mp3':
-                            potential_file =os .path .join (download_dir ,fname )
-                            try :
-                                os .rename (potential_file ,filepath )
-                                logger .info (f'Renamed {fname } to {safe_title }.mp3')
-                                break
-                            except :
-                                pass
-
-                if os .path .exists (filepath ):
-                    file_size =os .path .getsize (filepath )
-                    if file_size >10000 :
-                        download_success =True
-                        logger .info (f'✓ yt-dlp best succeeded ({file_size } bytes)')
-            except Exception as e :
-                logger .debug (f'yt-dlp best failed: {str (e )[:100 ]}')
-
-        if not download_success and not auth_blocked :
-            logger .info (f'[Attempt 3] Trying format 18 for: {video_url }')
-
-            try :
-                ydl_opts ={
-                'format':'18',
-                'quiet':True ,
-                'no_warnings':True ,
-                'socket_timeout':20
-                }
-                if YOUTUBE_PROXY :
-                    ydl_opts ['proxy']=YOUTUBE_PROXY
-
-                loop =asyncio .get_running_loop ()
-                with ThreadPoolExecutor (max_workers =1 )as executor :
-                    err =await loop .run_in_executor (executor ,functools .partial (_run_yt_dlp_suppressed ,ydl_opts ,[video_url ]))
-                if err :
-                    if 'Sign in to confirm'in err :
-                        logger .debug ('yt-dlp format18 requires authentication (skipping)')
-                        auth_blocked = True
-                    else :
-                        logger .debug (f'yt-dlp format18 failed: {err [:200 ]}')
-
-                for fname in os .listdir ('downloads'):
-                    potential_file =os .path .join ('downloads',fname )
-                    if os .path .getsize (potential_file )>10000 :
-                        try :
-                            os .rename (potential_file ,filepath )
-                            download_success =True
-                            logger .info (f'✓ Format 18 succeeded')
-                            break
-                        except :
-                            pass
-            except Exception as e :
-                logger .debug (f'Format 18 failed: {str (e )[:100 ]}')
-
-        if not download_success :
-            logger .info (f'[Attempt 4] Trying external MP3 services for: {video_url }')
-
-            try :
-                result =await try_external_mp3_extraction (video_url ,filepath )
-                if result and os .path .exists (filepath ):
-                    file_size =os .path .getsize (filepath )
-                    if file_size >10000 :
-                        download_success =True
-                        logger .info (f'✓ External service succeeded ({file_size } bytes)')
-            except Exception as e :
-                logger .debug (f'External extraction fallback failed: {type (e ).__name__ }: {e }')
+        logger .info (f'[External-only] Trying third-party services for: {video_url }')
+        try :
+            result =await try_external_mp3_extraction (video_url ,filepath )
+            if result and os .path .exists (filepath ):
+                file_size =os .path .getsize (filepath )
+                if file_size >10000 :
+                    download_success =True
+                    logger .info (f'✓ External service succeeded ({file_size } bytes)')
+        except Exception as e :
+            logger .debug (f'External extraction failed: {type (e ).__name__ }: {e }')
 
         if not download_success :
             try :
-                await processing_msg .edit_text ('❌ Download failed. Song may require authentication or not available.')
+                await processing_msg .edit_text ('❌ Download failed. External services could not fetch this track.')
             except MessageNotModified :
                 pass
             except Exception as e :

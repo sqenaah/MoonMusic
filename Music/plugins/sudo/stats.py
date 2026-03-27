@@ -16,26 +16,23 @@ async def show_stats (client :Client ,message :Message ):
         stats_text ="""
 **Extraction Method Statistics**
 
-✓ These numbers reflect successful extractions by method:
+✓ This build uses YouTube for search/metadata and third-party services for media extraction.
 
-• **yt_dlp:** Direct YouTube extraction via yt-dlp
-• **invidious:** Fallback extraction via Invidious proxy
-• **pytube:** Fallback extraction via pytube library
-• **external_service:** Fallback via external MP3 converter
-• **direct_stream:** Direct URL streaming fallback
-• **legacy_youtube_dl:** Legacy youtube_dl library fallback
+• **external_service:** Successful extraction via configured third-party services
+• **external_service_video:** Same policy for video-oriented requests
 
-To see live stats, query the YouTubeAPI instance directly or check logs for "MethodUsed:" entries.
+Direct YouTube downloading, Invidious fallbacks, and pytube fallbacks are disabled.
+
+To see live stats, check logs for "MethodUsed:" entries.
 
 **Log Grep for Current Session:**
 ```
 grep "MethodUsed:" <log_file>
 ```
 
-**Recent Extraction Failures (Feb 14):**
-- Video TiCl6qiti6E: Requires authentication (Sign in to confirm)
-- All 10 Invidious instances exhausted
-- All 10 external services exhausted
+**Recent Extraction Failure Pattern:**
+- External services exhausted for a requested media item
+- Search/metadata succeeded, but third-party extraction failed
     """
 
         await message .reply_text (stats_text ,quote =True )

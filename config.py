@@ -1,3 +1,4 @@
+import os
 import re
 from urllib.parse import quote_plus
 from pyrogram import filters
@@ -60,7 +61,7 @@ YOUTUBE_FALLBACK_SEARCH_LIMIT = 5
 # Maximum number of external services to try for downloads
 # Options: 1-13 (more = more reliable but slower)
 # Set to 5 to try 5 services, 13 to try all services
-EXTERNAL_SERVICES_MAX_ATTEMPT = 5
+EXTERNAL_SERVICES_MAX_ATTEMPT = int(os.getenv("EXTERNAL_SERVICES_MAX_ATTEMPT", "5"))
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # DURATION & RATE LIMITS
@@ -96,12 +97,12 @@ TG_VIDEO_FILESIZE_LIMIT = 2 * 1024 ** 3   # 2 GB
 # ═══════════════════════════════════════════════════════════════════════════════
 
 PRIVATE_BOT_MODE_MEM = 1
-CACHE_DURATION = 7 * 24 * 3600    # 7 days
-CACHE_SLEEP = 4 * 3600            # 4 hours
+CACHE_DURATION = 24 * 3600    # 24 hours
+CACHE_SLEEP = 3600            # 1 hour
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # USERBOT STRING SESSIONS (Pyrogram)
-# ═══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════
 
 STRING1 = "AgFHaGoAVHa9Q15n2IaDNygtcPNPGHBussJjD7XfLJjKV1b-sDdVsBUJ5SAPUoGx6LSJ9EugCx3uTvPNLoosVuiSDI8viGjPOp1sdN30utmvnCzyKIX0IEtPMzx38jkA3fBEWkfwJ-XziR9nkLUzXvn1I3SIVPj6FVPUSq3SW0qO-0nAPO0kIWZRzFTtRLldjDo67E2S3ge1V_dde4upSgJS6MrsWEY0FL6MYCpObLMZ__SGuY5Qq4exbJMGaCpwS5u_DtTuX-LOxMfte5JXR9FOGY3KxBD9UkRIUraQp2VD0PMacbj8bFNApDXwLr9FEjjch8xOydYQfRfL5CIws4dmsu8wxgAAAAH6ziPRAA"
 STRING2 = None
@@ -145,7 +146,7 @@ SPOTIFY_ARTIST_IMG_URL = "https://image2url.com/r2/default/images/1768793789039-
 SPOTIFY_ALBUM_IMG_URL = "https://image2url.com/r2/default/images/1768793789039-2d4017a9-b0a3-43ec-837c-82855012c3fb.jpg"
 SPOTIFY_PLAYLIST_IMG_URL = "https://image2url.com/r2/default/images/1768793789039-2d4017a9-b0a3-43ec-837c-82855012c3fb.jpg"
 
-DEFAULT_THUMB = START_IMG_URL[0]
+DEFAULT_THUMB = YOUTUBE_IMG_URL[0]
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # UTILITY FUNCTIONS
